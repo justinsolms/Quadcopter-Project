@@ -15,7 +15,7 @@ class Task():
         """Initialize a Task object.
 
         Parameters
-        ======
+        ----------
         init_pose:
             initial position of the quadcopter in (x,y,z) dimensions and the
             Euler angles
@@ -27,6 +27,17 @@ class Task():
             time limit for each episode
         target_pos:
             target/goal (x,y,z) position for the agent
+
+        State Attributes
+        ----------------
+        sim.pose:
+            The position of the quadcopter in x,y,z dimensions and the
+            Euler angles.
+        sim.v:
+            The velocity of the quadcopter in x,y,z dimensions.
+        sim.angular_v:
+            Angular velocity in radians/second for each Euler angle.
+
 
         """
         # Simulation
@@ -46,6 +57,21 @@ class Task():
     def get_reward(self):
         """Use current pose of sim to return reward."""
         reward = 1.-.3*(abs(self.sim.pose[:3] - self.target_pos)).sum()
+
+        k_30 = 0.523599  # Thirty degrees
+
+        pos = self.sim.pose[0:3]
+        d_pos = self.sim.v
+        att = self.sim.pose[3:6]
+        d_att = self.sim.angular_v
+
+        reward = 1.0 - (
+            1.0 * np.square(pos - self.target_pos) +
+            1.0 * np.square(att/k_30) +
+            0.008 * np.square(d_pos) +
+            0.008 * np.square(d_att/k_30)
+        ).sum()
+
         return reward
 
     def step(self, rotor_speeds):

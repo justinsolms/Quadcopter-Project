@@ -267,6 +267,13 @@ class DDPG():
         Update the target model with the local model weights. Do so gradually
         by using a soft update parameter, tau.
 
+        Note
+        ----
+        After training over a batch of experiences, we could just copy our newly
+        learned weights (from the local model) to the target model. However,
+        individual batches can introduce a lot of variance into the process, so
+        it's better to perform a soft update, controlled by the parameter tau.
+
         """
         local_weights = np.array(local_model.get_weights())
         target_weights = np.array(target_model.get_weights())
