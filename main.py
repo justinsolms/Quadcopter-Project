@@ -6,6 +6,7 @@ import os
 import sys
 import pandas as pd
 from agents.policy_search import PolicySearch_Agent
+from agents.ddpg import DDPG
 from task import Task
 import numpy as np
 
@@ -14,7 +15,8 @@ def train(num_episodes=1000, ):
     """Train."""
     target_pos = np.array([0., 0., 10.])
     task = Task(target_pos=target_pos)
-    agent = PolicySearch_Agent(task)
+    # agent = PolicySearch_Agent(task)
+    agent = DDPG(task)
 
     for i_episode in range(1, num_episodes+1):
         # start a new episode
@@ -22,14 +24,10 @@ def train(num_episodes=1000, ):
         while True:
             action = agent.act(state)
             next_state, reward, done = task.step(action)
-            agent.step(reward, done)
+            agent.step(action, reward, next_state, done)
             state = next_state
             if done:
-                print('\rEpisode = {:4d}, score = {:7.3f} '
-                      '(best = {:7.3f}), noise_scale = {}'.format(
-                          i_episode,
-                          agent.score, agent.best_score,
-                          agent.noise_scale), end='')
+                print('\rEpisode = {:4d}'.format(i_episode))
                 break
         sys.stdout.flush()
 

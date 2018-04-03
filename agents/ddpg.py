@@ -228,6 +228,7 @@ class DDPG():
         Use given batch of experience tuples from the experience buffer.
 
         """
+        
         # Convert experience tuples to separate arrays for each element (states,
         # actions, rewards, etc.)
         states = np.vstack([e.state for e in experiences if e is not None])
