@@ -1,6 +1,6 @@
 """Deep Deterministic Policy Gradients (DDPG) implementation."""
 
-from keras import layers, models, optimizers
+from keras import layers, models, optimizers, initializers
 from keras import backend as K
 from utils import OUNoise, ReplayBuffer
 import numpy as np
@@ -26,6 +26,7 @@ class Actor:
         self.action_range = self.action_high - self.action_low
 
         # Initialize any other variables here
+        self.learning_rate = 1.0e-4
 
         self.build_model()
 
@@ -35,24 +36,27 @@ class Actor:
         states = layers.Input(shape=(self.state_size,), name='states')
 
         # Add hidden layers
-        net = layers.Dense(units=32, activation='relu')(states)
-        net = layers.Dense(units=64, activation='relu')(net)
-        net = layers.Dense(units=32, activation='relu')(net)
+        net = layers.Dense(units=400, activation='relu')(states)
+        net = layers.Dense(units=300, activation='relu')(net)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
 
         # Add final output layer with sigmoid activations for the actions vector
         # elements in the range [0, 1]
+        init = initializers.RandomUniform(minval=−3.0e−3, maxval=−3.0e−3)
         raw_actions = layers.Dense(units=self.action_size,
                                    activation='sigmoid',
-                                   name='raw_actions')(net)
+                                   kernel_initializer=init,
+                                   bias_initializer=init,
+                                   name='raw_actions',
+                                   )(net)
 
         # Scale [0, 1] output for each action dimension to proper copter rotor
         # command range
         actions = layers.Lambda(
             lambda x: (x * self.action_range) + self.action_low, name='actions'
-            )(raw_actions)
+        )(raw_actions)
 
         # Create Keras model
         self.model = models.Model(inputs=states, outputs=actions)
@@ -64,12 +68,12 @@ class Actor:
         # Incorporate any additional losses here (e.g. from regularizers)
 
         # Define optimizer and training function
-        optimizer = optimizers.Adam()
+        optimizer = optimizers.Adam(lr=self.learning_rate)
         updates_op = optimizer.get_updates(
             params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
             inputs=[self.model.input, action_gradients, K.learning_phase()],
-            outputs=[],
+            outputs=[loss],  # NOTE: Hoping this outputs loss.
             updates=updates_op)
 
 
@@ -88,6 +92,7 @@ class Critic:
         self.action_size = action_size
 
         # Initialize any other variables here
+        self.learning_rate = 1.0e-3
 
         self.build_model()
 
@@ -96,17 +101,30 @@ class Critic:
 
         This is a (value) network that maps (state, action) pairs -> Q-values.
         """
+        # Initializers.
+        init = initializers.VarianceScaling(scale=1.0 / 3.0,
+                                            mode='fan_in',
+                                            distribution='uniform')
+
         # Define input layers
         states = layers.Input(shape=(self.state_size,), name='states')
         actions = layers.Input(shape=(self.action_size,), name='actions')
 
         # Add hidden layer(s) for state pathway
-        net_states = layers.Dense(units=32, activation='relu')(states)
-        net_states = layers.Dense(units=64, activation='relu')(net_states)
+        net_states = layers.Dense(units=400, activation='relu',
+                                  kernel_initializer=init,
+                                  bias_initializer=init)(states)
+        net_states = layers.Dense(units=300, activation='relu',
+                                  kernel_initializer=init,
+                                  bias_initializer=init)(net_states)
 
         # Add hidden layer(s) for action pathway
-        net_actions = layers.Dense(units=32, activation='relu')(actions)
-        net_actions = layers.Dense(units=64, activation='relu')(net_actions)
+        net_actions = layers.Dense(units=400, activation='relu',
+                                   kernel_initializer=init,
+                                   bias_initializer=init)(actions)
+        net_actions = layers.Dense(units=300, activation='relu',
+                                   kernel_initializer=init,
+                                   bias_initializer=init)(net_actions)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
@@ -116,16 +134,27 @@ class Critic:
         net = layers.Activation('relu')(net)
 
         # Add more layers to the combined network if needed
+        net = layers.Dense(units=200, activation='relu',
+                           kernel_initializer=init,
+                           bias_initializer=init)(net)
+        net = layers.Dense(units=200, activation='relu',
+                           kernel_initializer=init,
+                           bias_initializer=init)(net)
 
-        # Add final output layer to prduce action values (Q values)
-        Q_values = layers.Dense(units=1, name='q_values')(net)
+        # Add final linear output layer to prduce action values (Q values)
+        init = initializers.RandomUniform(minval=−3.0e−3, maxval=−3.0e−3)
+        Q_values = layers.Dense(units=1,
+                                kernel_initializer=init,
+                                bias_initializer=init,
+                                name='q_values',
+                                )(net)
 
         # Create Keras model
         self.model = models.Model(inputs=[states, actions], outputs=Q_values)
 
         # Define optimizer and compile model for training with built-in loss
         # function
-        optimizer = optimizers.Adam()
+        optimizer = optimizers.Adam(lr=self.learning_rate)
         self.model.compile(optimizer=optimizer, loss='mse')
 
         # Compute action gradients (derivative of Q values w.r.t. to actions)
@@ -150,12 +179,10 @@ class DDPG():
         self.action_high = task.action_high
 
         # Actor (Policy) Model
-        self.actor_local = Actor(
-            self.state_size, self.action_size,
-            self.action_low, self.action_high)
-        self.actor_target = Actor(
-            self.state_size, self.action_size,
-            self.action_low, self.action_high)
+        self.actor_local = Actor(self.state_size, self.action_size,
+                                 self.action_low, self.action_high)
+        self.actor_target = Actor(self.state_size, self.action_size,
+                                  self.action_low, self.action_high)
 
         # Critic (Value) Model
         self.critic_local = Critic(self.state_size, self.action_size)
@@ -175,13 +202,13 @@ class DDPG():
                              self.exploration_theta, self.exploration_sigma)
 
         # Replay memory
-        self.buffer_size = 100000
+        self.buffer_size = 1000000
         self.batch_size = 64
         self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
         # Algorithm parameters
         self.gamma = 0.99  # discount factor
-        self.tau = 0.01  # for soft update of target parameters
+        self.tau = 0.001  # for soft update of target parameters
 
     def reset_episode(self):
         """Start a new episode."""
@@ -204,10 +231,14 @@ class DDPG():
         # Learn, if enough samples are available in memory
         if len(self.memory) > self.batch_size:
             experiences = self.memory.sample()
-            self.learn(experiences)
+            losses = self.learn(experiences)
+        else:
+            losses = None
 
         # Roll over last state and action
         self.last_state = next_state
+
+        return losses
 
     def act(self, state):
         """Return actions for given state(s) as per current policy.
@@ -228,7 +259,7 @@ class DDPG():
         Use given batch of experience tuples from the experience buffer.
 
         """
-        
+
         # Convert experience tuples to separate arrays for each element (states,
         # actions, rewards, etc.)
         states = np.vstack([e.state for e in experiences if e is not None])
@@ -241,7 +272,7 @@ class DDPG():
         next_states = np.vstack(
             [e.next_state for e in experiences if e is not None])
 
-        # Get predicted next-state actions and Q values from target models
+        # Get predicted next-state actions and Q values from (target) models
         # Q_targets_next = critic_target(next_state, actor_target(next_state))
         actions_next = self.actor_target.model.predict_on_batch(next_states)
         Q_targets_next = self.critic_target.model.predict_on_batch(
@@ -249,18 +280,20 @@ class DDPG():
 
         # Compute Q targets for current states and train critic model (local)
         Q_targets = rewards + self.gamma * Q_targets_next * (1 - dones)
-        self.critic_local.model.train_on_batch(
+        loss_critic = self.critic_local.model.train_on_batch(
             x=[states, actions], y=Q_targets)
 
         # Train actor model (local)
         action_gradients = np.reshape(self.critic_local.get_action_gradients(
             [states, actions, 0]), (-1, self.action_size))
-        # custom training function
-        self.actor_local.train_fn([states, action_gradients, 1])
+        # Customized actor training function
+        loss_actor = self.actor_local.train_fn([states, action_gradients, 1])
 
         # Soft-update target models
         self.soft_update(self.critic_local.model, self.critic_target.model)
         self.soft_update(self.actor_local.model, self.actor_target.model)
+
+        return loss_actor[0], loss_critic
 
     def soft_update(self, local_model, target_model):
         """Soft update model parameters.

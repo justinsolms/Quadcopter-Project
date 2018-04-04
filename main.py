@@ -5,35 +5,54 @@ from glob import glob
 import os
 import sys
 import pandas as pd
-from agents.policy_search import PolicySearch_Agent
 from agents.ddpg import DDPG
 from task import Task
 import numpy as np
+# import matplotlib.pyplot as plt
 
 
-def train(num_episodes=1000, ):
+def train(num_episodes=10000, ):
     """Train."""
+    telemetry = list()
+
     target_pos = np.array([0., 0., 10.])
+    # Create the task environment.
     task = Task(target_pos=target_pos)
-    # agent = PolicySearch_Agent(task)
+    # Create the DDPG agent in the task environment.
     agent = DDPG(task)
 
     for i_episode in range(1, num_episodes+1):
         # start a new episode
         state = agent.reset_episode()
         while True:
+            # Actor commands the action
             action = agent.act(state)
+            # Environment reacts with next state, reward and done for
+            # end-of-episode
             next_state, reward, done = task.step(action)
-            agent.step(action, reward, next_state, done)
+            # Agent (actor-critic) learns
+            losses = agent.step(action, reward, next_state, done)
+            # S <- S
             state = next_state
+            if done and losses is not None:
+                loss_actor, loss_critic = losses
+                # End of episode. Show metrics.
+                print('\rEpisode: {:4d}, Loss-actor: {:8.4f}, Loss-critic: {:8.4f}'.format(i_episode, loss_actor, loss_critic))
+                telemetry.append((i_episode, loss_actor, loss_critic))
             if done:
-                print('\rEpisode = {:4d}'.format(i_episode))
                 break
+        # Re-use same line to print on.
         sys.stdout.flush()
 
+    # Plot
+    i_episode, loss_actor, loss_critic = zip(*telemetry)
+    # plt.plot(i_episode, loss_actor)
+    # plt.plot(i_episode, loss_critic)
+    # plt.show()
 
 def main(argv):
     """Command line parser for batch processes."""
+    # FIXME: This is a sample from another project.
     longopts = ['job=', 'batch_size=', 'z_dim=', 'learning_rate=', 'beta1=']
     try:
         opts, args = getopt.getopt(argv, '', longopts)

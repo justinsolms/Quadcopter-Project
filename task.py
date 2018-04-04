@@ -2,6 +2,7 @@
 
 import numpy as np
 from physics_sim import PhysicsSim
+from numpy import square as sqr
 
 
 class Task():
@@ -43,7 +44,7 @@ class Task():
         # Simulation
         self.sim = PhysicsSim(
             init_pose, init_velocities, init_angle_velocities, runtime)
-        self.action_repeat = 3
+        self.action_repeat = 1
 
         self.state_size = self.action_repeat * 6
         self.action_low = 0
@@ -53,24 +54,35 @@ class Task():
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array(
             [0., 0., 10.])
+        self.max_position_error = 20.0
+        self.max_attitude_error = (22.0/7.0/180.0) * 30.0  # Thirty degrees
 
     def get_reward(self):
         """Use current pose of sim to return reward."""
-        reward = 1.-.3*(abs(self.sim.pose[:3] - self.target_pos)).sum()
-
-        k_30 = 0.523599  # Thirty degrees
-
         pos = self.sim.pose[0:3]
         d_pos = self.sim.v
         att = self.sim.pose[3:6]
         d_att = self.sim.angular_v
 
-        reward = 1.0 - (
-            1.0 * np.square(pos - self.target_pos) +
-            1.0 * np.square(att/k_30) +
-            0.008 * np.square(d_pos) +
-            0.008 * np.square(d_att/k_30)
-        ).sum()
+        pos_err = pos - self.target_pos
+        att_err = att
+
+        # Reward and also done and punish if exceeds maximum constraints.
+        self.sim.done = self.sim.done  # Test if this works.
+        if np.linalg.norm(pos_err) > self.max_position_error:
+            self.sim.done = True
+            reward = -10.0
+        elif np.linalg.norm(att_err) > self.max_attitude_error:
+            # Only valid for small angles phi and theta but psi is okay.
+            self.sim.done = True
+            reward = -10.0
+        else:
+            reward = 1.0 - (
+                1.0 * sqr(pos_err)/sqr(self.max_position_error) +
+                1.0 * sqr(att)/sqr(self.max_attitude_error) +
+                0.008 * sqr(d_pos)/sqr(self.max_position_error) +
+                0.008 * sqr(d_att)/sqr(self.max_attitude_error)
+            ).sum()
 
         return reward
 
