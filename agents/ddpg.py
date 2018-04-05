@@ -36,10 +36,14 @@ class Actor:
         states = layers.Input(shape=(self.state_size,), name='states')
 
         # Add hidden layers
-        net = layers.Dense(units=400, activation='relu')(states)
+        net = layers.Dense(units=300, activation='linear')(states)
         net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=300, activation='relu')(net)
+        net = layers.LeakyReLU(alpha=0.3)(net)
+
+        # Add hidden layers
+        net = layers.Dense(units=600, activation='linear')(net)
         net = layers.BatchNormalization()(net)
+        net = layers.LeakyReLU(alpha=0.3)(net)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
@@ -113,49 +117,37 @@ class Critic:
         actions = layers.Input(shape=(self.action_size,), name='actions')
 
         # Add hidden layer(s) for state pathway
-        net_states = layers.Dense(units=400, activation='relu',
+        net_states = layers.Dense(units=400, activation='linear',
                                   kernel_initializer=init,
                                   bias_initializer=init,
                                   kernel_regularizer=regularizers.l2(0.01)
                                   )(states)
         net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.Dense(units=300, activation='relu',
-                                  kernel_initializer=init,
-                                  bias_initializer=init,
-                                  kernel_regularizer=regularizers.l2(0.01)
-                                  )(net_states)
-        net_states = layers.BatchNormalization()(net_states)
+        net_states = layers.LeakyReLU(alpha=0.3)(net_states)
 
         # Add hidden layer(s) for action pathway
-        net_actions = layers.Dense(units=400, activation='relu',
+        net_actions = layers.Dense(units=400, activation='linear',
                                    kernel_initializer=init,
                                    bias_initializer=init,
                                    kernel_regularizer=regularizers.l2(0.01)
                                    )(actions)
-        net_actions = layers.Dense(units=300, activation='relu',
-                                   kernel_initializer=init,
-                                   bias_initializer=init,
-                                   kernel_regularizer=regularizers.l2(0.01)
-                                   )(net_actions)
+        net_actions = layers.BatchNormalization()(net_actions)
+        net_actions = layers.LeakyReLU(alpha=0.3)(net_actions)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
 
         # Combine state and action pathways
         net = layers.Add()([net_states, net_actions])
-        net = layers.Activation('relu')(net)
+        net = layers.LeakyReLU(alpha=0.3)(net)
 
         # Add more layers to the combined network if needed
-        net = layers.Dense(units=200, activation='relu',
+        net = layers.Dense(units=300, activation='linear',
                            kernel_initializer=init,
                            bias_initializer=init,
                            kernel_regularizer=regularizers.l2(0.01)
                            )(net)
-        net = layers.Dense(units=200, activation='relu',
-                           kernel_initializer=init,
-                           bias_initializer=init,
-                           kernel_regularizer=regularizers.l2(0.01)
-                           )(net)
+        net = layers.LeakyReLU(alpha=0.3)(net)
 
         # Add final linear output layer to prduce action values (Q values)
         init = initializers.RandomUniform(minval=-0.003, maxval=0.003)

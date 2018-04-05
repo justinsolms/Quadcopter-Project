@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 labels = ['episode', 'step', 'lossQ', 'reward']
 results = {x : [] for x in labels}
-name = 'MountainCarContinuous-v0'
+name = 'Pendulum-v0'
 
 def train(num_episodes=10000, ):
     """Train."""
