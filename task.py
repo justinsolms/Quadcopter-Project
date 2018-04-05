@@ -3,6 +3,7 @@
 import numpy as np
 from physics_sim import PhysicsSim
 from numpy import square as sqr
+from numpy.linalg import norm
 
 
 class Task():
@@ -12,7 +13,7 @@ class Task():
     """
 
     def __init__(self, init_pose=None, init_velocities=None,
-                 init_angle_velocities=None, runtime=5., target_pos=None):
+                 init_angle_velocities=None, runtime=5.0, target_pos=None):
         """Initialize a Task object.
 
         Parameters
@@ -47,43 +48,39 @@ class Task():
         self.action_repeat = 1
 
         self.state_size = self.action_repeat * 6
-        self.action_low = 0
-        self.action_high = 900
+        self.action_low = 405 - 20
+        self.action_high = 405 + 20
         self.action_size = 4
 
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array(
             [0., 0., 10.])
-        self.max_position_error = 20.0
-        self.max_attitude_error = (22.0/7.0/180.0) * 30.0  # Thirty degrees
+        self.max_position_error = 10.0
+        self.max_attitude_error = (22.0/7.0/180.0) * 15.0  # Thirty degrees
 
     def get_reward(self):
         """Use current pose of sim to return reward."""
         pos = self.sim.pose[0:3]
-        d_pos = self.sim.v
+        vel = self.sim.v
         att = self.sim.pose[3:6]
-        d_att = self.sim.angular_v
+        rot = self.sim.angular_v
 
-        pos_err = pos - self.target_pos
-        att_err = att
+        e_pos = (self.target_pos - pos) / self.max_position_error
+        e_att = - np.sin(att) / np.sin(self.max_attitude_error)
 
         # Reward and also done and punish if exceeds maximum constraints.
-        self.sim.done = self.sim.done  # Test if this works.
-        if np.linalg.norm(pos_err) > self.max_position_error:
-            self.sim.done = True
-            reward = -10.0
-        elif np.linalg.norm(att_err) > self.max_attitude_error:
+        if np.any(np.abs(e_att) > 1.0):
             # Only valid for small angles phi and theta but psi is okay.
             self.sim.done = True
             reward = -10.0
         else:
-            reward = 1.0 - (
-                1.0 * sqr(pos_err)/sqr(self.max_position_error) +
-                1.0 * sqr(att)/sqr(self.max_attitude_error) +
-                0.008 * sqr(d_pos)/sqr(self.max_position_error) +
-                0.008 * sqr(d_att)/sqr(self.max_attitude_error)
-            ).sum()
-
+            reward = (
+                + 0.5
+                - 0.001 * np.dot(e_pos, e_pos)
+                + 0.001 * np.dot(e_pos, vel)
+                - 1.0 * np.dot(e_att, e_att)
+                ).sum()
+        # print(e_pos, vel, e_att, reward)
         return reward
 
     def step(self, rotor_speeds):

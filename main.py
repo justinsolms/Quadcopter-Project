@@ -17,13 +17,15 @@ def train(num_episodes=10000, ):
 
     target_pos = np.array([0., 0., 10.])
     # Create the task environment.
-    task = Task(target_pos=target_pos)
+    task = Task(target_pos=target_pos, runtime=100.0)
     # Create the DDPG agent in the task environment.
     agent = DDPG(task)
 
     for i_episode in range(1, num_episodes+1):
         # start a new episode
         state = agent.reset_episode()
+        episode_reward = 0.0
+        N = 0
         while True:
             # Actor commands the action
             action = agent.act(state)
@@ -34,11 +36,13 @@ def train(num_episodes=10000, ):
             losses = agent.step(action, reward, next_state, done)
             # S <- S
             state = next_state
+            episode_reward += reward
+            N += 1
             if done and losses is not None:
-                loss_actor, loss_critic = losses
+                loss_critic = losses
                 # End of episode. Show metrics.
-                print('\rEpisode: {:4d}, Loss-actor: {:8.4f}, Loss-critic: {:8.4f}'.format(i_episode, loss_actor, loss_critic))
-                telemetry.append((i_episode, loss_actor, loss_critic))
+                print('\rEpisode: {:4d}, Loss-crit: {:8.3f}, Av Rwd: {:7.3f}, Lst Rwd: {:6.3f}, RunTime: {:6.3f}'.format(i_episode, loss_critic, episode_reward/N, reward, task.sim.time))
+                telemetry.append((i_episode, loss_critic, episode_reward))
             if done:
                 break
         # Re-use same line to print on.

@@ -44,7 +44,7 @@ class Actor:
 
         # Add final output layer with sigmoid activations for the actions vector
         # elements in the range [0, 1]
-        init = initializers.RandomUniform(minval=−3.0e−3, maxval=−3.0e−3)
+        init = initializers.RandomUniform(minval=-0.003, maxval=0.003)
         raw_actions = layers.Dense(units=self.action_size,
                                    activation='sigmoid',
                                    kernel_initializer=init,
@@ -73,7 +73,7 @@ class Actor:
             params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
             inputs=[self.model.input, action_gradients, K.learning_phase()],
-            outputs=[loss],  # NOTE: Hoping this outputs loss.
+            outputs=[],  # NOTE: Hoping this outputs loss.
             updates=updates_op)
 
 
@@ -142,7 +142,7 @@ class Critic:
                            bias_initializer=init)(net)
 
         # Add final linear output layer to prduce action values (Q values)
-        init = initializers.RandomUniform(minval=−3.0e−3, maxval=−3.0e−3)
+        init = initializers.RandomUniform(minval=-0.003, maxval=0.003)
         Q_values = layers.Dense(units=1,
                                 kernel_initializer=init,
                                 bias_initializer=init,
@@ -231,14 +231,14 @@ class DDPG():
         # Learn, if enough samples are available in memory
         if len(self.memory) > self.batch_size:
             experiences = self.memory.sample()
-            losses = self.learn(experiences)
+            loss_critic = self.learn(experiences)
         else:
-            losses = None
+            loss_critic = None
 
         # Roll over last state and action
         self.last_state = next_state
 
-        return losses
+        return loss_critic
 
     def act(self, state):
         """Return actions for given state(s) as per current policy.
@@ -287,13 +287,13 @@ class DDPG():
         action_gradients = np.reshape(self.critic_local.get_action_gradients(
             [states, actions, 0]), (-1, self.action_size))
         # Customized actor training function
-        loss_actor = self.actor_local.train_fn([states, action_gradients, 1])
+        self.actor_local.train_fn([states, action_gradients, 1])
 
         # Soft-update target models
         self.soft_update(self.critic_local.model, self.critic_target.model)
         self.soft_update(self.actor_local.model, self.actor_target.model)
 
-        return loss_actor[0], loss_critic
+        return loss_critic
 
     def soft_update(self, local_model, target_model):
         """Soft update model parameters.
