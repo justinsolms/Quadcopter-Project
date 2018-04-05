@@ -37,7 +37,9 @@ class Actor:
 
         # Add hidden layers
         net = layers.Dense(units=400, activation='relu')(states)
+        net = layers.BatchNormalization()(net)
         net = layers.Dense(units=300, activation='relu')(net)
+        net = layers.BatchNormalization()(net)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
@@ -51,6 +53,7 @@ class Actor:
                                    bias_initializer=init,
                                    name='raw_actions',
                                    )(net)
+        net = layers.BatchNormalization()(net)
 
         # Scale [0, 1] output for each action dimension to proper copter rotor
         # command range
@@ -122,9 +125,11 @@ class Critic:
         net_actions = layers.Dense(units=400, activation='relu',
                                    kernel_initializer=init,
                                    bias_initializer=init)(actions)
+        net_actions = layers.BatchNormalization()(net_actions)
         net_actions = layers.Dense(units=300, activation='relu',
                                    kernel_initializer=init,
                                    bias_initializer=init)(net_actions)
+        net_actions = layers.BatchNormalization()(net_actions)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
