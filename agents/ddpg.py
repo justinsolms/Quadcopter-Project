@@ -117,21 +117,21 @@ class Critic:
         actions = layers.Input(shape=(self.action_size,), name='actions')
 
         # Add hidden layer(s) for state pathway
-        net_states = layers.Dense(units=400, activation='linear',
+        net_states = layers.Dense(units=300, activation='linear',
                                   kernel_initializer=init,
                                   bias_initializer=init,
                                   kernel_regularizer=regularizers.l2(0.01)
                                   )(states)
         net_states = layers.BatchNormalization()(net_states)
         net_states = layers.LeakyReLU(alpha=0.3)(net_states)
-        net_states = layers.Dense(units=400, activation='linear',
+        net_states = layers.Dense(units=600, activation='linear',
                                   kernel_initializer=init,
                                   bias_initializer=init,
                                   kernel_regularizer=regularizers.l2(0.01)
                                   )(net_states)
 
         # Add hidden layer(s) for action pathway
-        net_actions = layers.Dense(units=400, activation='linear',
+        net_actions = layers.Dense(units=600, activation='linear',
                                    kernel_initializer=init,
                                    bias_initializer=init,
                                    kernel_regularizer=regularizers.l2(0.01)
