@@ -170,13 +170,13 @@ class Critic:
 class DDPG():
     """Reinforcement Learning agent that learns using DDPG."""
 
-    def __init__(self, task):
+    def __init__(self, env):
         """Class initialization."""
-        self.task = task
-        self.state_size = task.state_size
-        self.action_size = task.action_size
-        self.action_low = task.action_low
-        self.action_high = task.action_high
+        self.env = env
+        self.state_size = env.observation_space.shape[0]
+        self.action_size = env.action_space.shape[0]
+        self.action_low = env.action_space.high[0]
+        self.action_high = env.action_space.low[0]
 
         # Actor (Policy) Model
         self.actor_local = Actor(self.state_size, self.action_size,
@@ -210,10 +210,10 @@ class DDPG():
         self.gamma = 0.99  # discount factor
         self.tau = 0.001  # for soft update of target parameters
 
-    def reset_episode(self):
+    def reset(self):
         """Start a new episode."""
         self.noise.reset()
-        state = self.task.reset()
+        state = self.env.reset()
         self.last_state = state
         return state
 
