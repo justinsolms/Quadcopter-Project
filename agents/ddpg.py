@@ -1,6 +1,6 @@
 """Deep Deterministic Policy Gradients (DDPG) implementation."""
 
-from keras import layers, models, optimizers, initializers
+from keras import layers, models, optimizers, initializers, regularizers
 from keras import backend as K
 from utils import OUNoise, ReplayBuffer
 import numpy as np
@@ -53,7 +53,6 @@ class Actor:
                                    bias_initializer=init,
                                    name='raw_actions',
                                    )(net)
-        net = layers.BatchNormalization()(net)
 
         # Scale [0, 1] output for each action dimension to proper copter rotor
         # command range
@@ -116,20 +115,28 @@ class Critic:
         # Add hidden layer(s) for state pathway
         net_states = layers.Dense(units=400, activation='relu',
                                   kernel_initializer=init,
-                                  bias_initializer=init)(states)
+                                  bias_initializer=init,
+                                  kernel_regularizer=regularizers.l2(0.01)
+                                  )(states)
+        net_states = layers.BatchNormalization()(net_states)
         net_states = layers.Dense(units=300, activation='relu',
                                   kernel_initializer=init,
-                                  bias_initializer=init)(net_states)
+                                  bias_initializer=init,
+                                  kernel_regularizer=regularizers.l2(0.01)
+                                  )(net_states)
+        net_states = layers.BatchNormalization()(net_states)
 
         # Add hidden layer(s) for action pathway
         net_actions = layers.Dense(units=400, activation='relu',
                                    kernel_initializer=init,
-                                   bias_initializer=init)(actions)
-        net_actions = layers.BatchNormalization()(net_actions)
+                                   bias_initializer=init,
+                                   kernel_regularizer=regularizers.l2(0.01)
+                                   )(actions)
         net_actions = layers.Dense(units=300, activation='relu',
                                    kernel_initializer=init,
-                                   bias_initializer=init)(net_actions)
-        net_actions = layers.BatchNormalization()(net_actions)
+                                   bias_initializer=init,
+                                   kernel_regularizer=regularizers.l2(0.01)
+                                   )(net_actions)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
@@ -141,10 +148,14 @@ class Critic:
         # Add more layers to the combined network if needed
         net = layers.Dense(units=200, activation='relu',
                            kernel_initializer=init,
-                           bias_initializer=init)(net)
+                           bias_initializer=init,
+                           kernel_regularizer=regularizers.l2(0.01)
+                           )(net)
         net = layers.Dense(units=200, activation='relu',
                            kernel_initializer=init,
-                           bias_initializer=init)(net)
+                           bias_initializer=init,
+                           kernel_regularizer=regularizers.l2(0.01)
+                           )(net)
 
         # Add final linear output layer to prduce action values (Q values)
         init = initializers.RandomUniform(minval=-0.003, maxval=0.003)
@@ -152,6 +163,7 @@ class Critic:
                                 kernel_initializer=init,
                                 bias_initializer=init,
                                 name='q_values',
+                                kernel_regularizer=regularizers.l2(0.01)
                                 )(net)
 
         # Create Keras model
