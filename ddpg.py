@@ -1,4 +1,13 @@
-"""Deep Deterministic Policy Gradients (DDPG) implementation."""
+"""Deep Deterministic Policy Gradients (DDPG) implementation.
+
+CREDITS
+-------
+    Models copied from kkweon/DDPG.py
+    https://gist.github.com/kkweon/a82980f3d60ffce1d69ad6da8af0e124
+
+    Basic layout from Udacity rl-quad-copter project.
+
+"""
 
 from keras import layers, models, optimizers, initializers, regularizers
 from keras import backend as K
@@ -38,12 +47,12 @@ class Actor:
         # Add hidden layers
         net = layers.Dense(units=300, activation='linear')(states)
         net = layers.BatchNormalization()(net)
-        net = layers.LeakyReLU(alpha=0.1)(net)
+        net = layers.LeakyReLU(alpha=0.0)(net)
 
         # Add hidden layers
         net = layers.Dense(units=600, activation='linear')(net)
         net = layers.BatchNormalization()(net)
-        net = layers.LeakyReLU(alpha=0.1)(net)
+        net = layers.LeakyReLU(alpha=0.0)(net)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
@@ -74,7 +83,7 @@ class Actor:
         # Incorporate any additional losses here (e.g. from regularizers)
 
         # Define optimizer and training function
-        optimizer = optimizers.Adam(lr=self.learning_rate)
+        optimizer = optimizers.Adam(lr=self.learning_rate, clipnorm=1.0)
         updates_op = optimizer.get_updates(
             params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
@@ -123,7 +132,7 @@ class Critic:
                                   kernel_regularizer=regularizers.l2(0.01)
                                   )(states)
         net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.LeakyReLU(alpha=0.1)(net_states)
+        net_states = layers.LeakyReLU(alpha=0.0)(net_states)
         net_states = layers.Dense(units=600, activation='linear',
                                   kernel_initializer=init,
                                   bias_initializer=init,
@@ -143,7 +152,7 @@ class Critic:
         # Combine state and action pathways
         net = layers.Add()([net_states, net_actions])
         net = layers.BatchNormalization()(net)
-        net = layers.LeakyReLU(alpha=0.1)(net)
+        net = layers.LeakyReLU(alpha=0.0)(net)
 
         # Add more layers to the combined network if needed
 
@@ -161,7 +170,7 @@ class Critic:
 
         # Define optimizer and compile model for training with built-in loss
         # function
-        optimizer = optimizers.Adam(lr=self.learning_rate)
+        optimizer = optimizers.Adam(lr=self.learning_rate, clipnorm=1.0)
         self.model.compile(optimizer=optimizer, loss='mse')
 
         # Compute action gradients (derivative of Q values w.r.t. to actions)
