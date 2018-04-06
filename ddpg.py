@@ -44,15 +44,15 @@ class Actor:
         # Define input layer (states)
         states = layers.Input(shape=(self.state_size,), name='states')
 
-        net = layers.Dense(64)(states)
+        net = layers.Dense(16)(states)
         net = layers.BatchNormalization()(net)
         net = layers.Activation('relu')(net)
 
-        net = layers.Dense(64)(net)
+        net = layers.Dense(16)(net)
         net = layers.BatchNormalization()(net)
         net = layers.Activation('relu')(net)
 
-        net = layers.Dense(64)(net)
+        net = layers.Dense(16)(net)
         net = layers.BatchNormalization()(net)
         net = layers.Activation('relu')(net)
 
@@ -128,17 +128,12 @@ class Critic:
         actions = layers.Input(shape=(self.action_size,), name='actions')
 
         # Add hidden layer(s) for state pathway
-        net_states = layers.Dense(64)(states)
+        net_states = layers.Dense(32)(states)
         net_states = layers.BatchNormalization()(net_states)
         net_states = layers.Activation('relu')(net_states)
-
-        net_states = layers.Dense(64)(net_states)
-        net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.Activation('relu')(net_states)
-
 
         # Add hidden layer(s) for action pathway
-        net_actions = layers.Dense(64)(actions)
+        net_actions = layers.Dense(32)(actions)
         net_actions = layers.BatchNormalization()(net_actions)
         net_actions = layers.Activation('relu')(net_actions)
 
@@ -146,14 +141,10 @@ class Critic:
         # regularizers, etc.
 
         # Combine state and action pathways
-        net = layers.Add()([net_states, net_actions])
+        net = layers.Concatenate()([net_states, net_actions])
 
         # Add more layers to the combined network if needed
-        net = layers.Dense(64)(net)
-        net = layers.BatchNormalization()(net)
-        net = layers.Activation('relu')(net)
-
-        net = layers.Dense(64)(net)
+        net = layers.Dense(32)(net)
         net = layers.BatchNormalization()(net)
         net = layers.Activation('relu')(net)
 
@@ -246,7 +237,8 @@ class DDPG():
         self.memory.add(self.last_state, action, reward, next_state, done)
 
         # Learn, if enough samples are available in memory
-        if len(self.memory) > self.batch_size:
+        # if len(self.memory) > self.batch_size:
+        if len(self.memory) > self.batch_size * 50:
             experiences = self.memory.sample()
             loss_critic = self.learn(experiences)
         else:

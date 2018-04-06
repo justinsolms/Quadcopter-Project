@@ -49,7 +49,7 @@ def train(num_episodes=20000, ):
                 sum_reward += reward
                 N += 1
                 i_step += 1
-                if i_step % 100 == 0:
+                if i_step % 100 == 0 and losses is not None:
                     loss_critic = losses
                     # End of episode. Show metrics.
                     to_write = (i_episode, i_step, loss_critic,
