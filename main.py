@@ -16,7 +16,7 @@ labels = ['episode', 'step', 'lossQ', 'reward']
 results = {x : [] for x in labels}
 name = 'Pendulum-v0'
 
-def train(num_episodes=10000, ):
+def train(num_episodes=20000, ):
     """Train."""
 
     # Create the task environment.

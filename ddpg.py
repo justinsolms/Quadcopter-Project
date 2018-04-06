@@ -38,12 +38,12 @@ class Actor:
         # Add hidden layers
         net = layers.Dense(units=300, activation='linear')(states)
         net = layers.BatchNormalization()(net)
-        net = layers.LeakyReLU(alpha=0.3)(net)
+        net = layers.LeakyReLU(alpha=0.1)(net)
 
         # Add hidden layers
         net = layers.Dense(units=600, activation='linear')(net)
         net = layers.BatchNormalization()(net)
-        net = layers.LeakyReLU(alpha=0.3)(net)
+        net = layers.LeakyReLU(alpha=0.1)(net)
 
         # Try different layer sizes, activations, add batch normalization,
         # regularizers, etc.
@@ -123,7 +123,7 @@ class Critic:
                                   kernel_regularizer=regularizers.l2(0.01)
                                   )(states)
         net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.LeakyReLU(alpha=0.3)(net_states)
+        net_states = layers.LeakyReLU(alpha=0.1)(net_states)
         net_states = layers.Dense(units=600, activation='linear',
                                   kernel_initializer=init,
                                   bias_initializer=init,
@@ -143,7 +143,7 @@ class Critic:
         # Combine state and action pathways
         net = layers.Add()([net_states, net_actions])
         net = layers.BatchNormalization()(net)
-        net = layers.LeakyReLU(alpha=0.3)(net)
+        net = layers.LeakyReLU(alpha=0.1)(net)
 
         # Add more layers to the combined network if needed
 
