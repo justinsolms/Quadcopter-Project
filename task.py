@@ -2,6 +2,7 @@
 
 import numpy as np
 from physics_sim import PhysicsSim
+import gym
 from numpy import square as sqr
 from numpy.linalg import norm
 
@@ -43,8 +44,7 @@ class Task():
 
         """
         # Simulation
-        self.sim = PhysicsSim(
-            init_pose, init_velocities, init_angle_velocities, runtime)
+        self.sim = make('Pendulum-v0')
         self.action_repeat = 1
 
         self.state_size = self.action_repeat * 6

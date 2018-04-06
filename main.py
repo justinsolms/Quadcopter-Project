@@ -5,48 +5,70 @@ from glob import glob
 import os
 import sys
 import pandas as pd
-from agents.ddpg import DDPG
+from ddpg import DDPG
 from task import Task
+import gym
 import numpy as np
-# import matplotlib.pyplot as plt
+import csv
+import matplotlib.pyplot as plt
 
+labels = ['episode', 'step', 'lossQ', 'reward']
+results = {x : [] for x in labels}
+name = 'Pendulum-v0'
 
-def train(num_episodes=10000, ):
+def train(num_episodes=20000, ):
     """Train."""
-    telemetry = list()
 
-    target_pos = np.array([0., 0., 10.])
     # Create the task environment.
-    task = Task(target_pos=target_pos, runtime=100.0)
-    # Create the DDPG agent in the task environment.
-    agent = DDPG(task)
+    env = gym.make(name)
 
-    for i_episode in range(1, num_episodes+1):
-        # start a new episode
-        state = agent.reset_episode()
-        episode_reward = 0.0
-        N = 0
-        while True:
-            # Actor commands the action
-            action = agent.act(state)
-            # Environment reacts with next state, reward and done for
-            # end-of-episode
-            next_state, reward, done = task.step(action)
-            # Agent (actor-critic) learns
-            losses = agent.step(action, reward, next_state, done)
-            # S <- S
-            state = next_state
-            episode_reward += reward
-            N += 1
-            if done and losses is not None:
-                loss_critic = losses
-                # End of episode. Show metrics.
-                print('\rEpisode: {:4d}, Loss-crit: {:8.3f}, Av Rwd: {:7.3f}, Lst Rwd: {:6.3f}, RunTime: {:6.3f}'.format(i_episode, loss_critic, episode_reward/N, reward, task.sim.time))
-                telemetry.append((i_episode, loss_critic, episode_reward))
-            if done:
-                break
-        # Re-use same line to print on.
-        sys.stdout.flush()
+    # Create the DDPG agent in the task environment.
+    agent = DDPG(env)
+
+    with open(name + '.csv', 'w') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(labels)
+
+        i_step = 0
+        for i_episode in range(1, num_episodes+1):
+            # start a new episode
+            state = agent.reset()
+            sum_reward = 0.0
+            N = 0
+            while True:
+                env.render()
+                # Actor commands the action
+                action = agent.act(state)
+                # Environment reacts with next state, reward and done for
+                # end-of-episode
+                next_state, reward, done, info = env.step(action)
+                # Agent (actor-critic) learns
+                losses = agent.step(action, reward, next_state, done)
+                # S <- S
+                state = next_state
+                sum_reward += reward
+                N += 1
+                i_step += 1
+                if i_step % 100 == 0 and losses is not None:
+                    loss_critic = losses
+                    # End of episode. Show metrics.
+                    to_write = (i_episode, i_step, loss_critic,
+                                sum_reward/N)
+                    print(
+                        '\rEpisode: {:4d}, '
+                        'Step: {:7d}, '
+                        'Loss-crit: {:10.4f}, '
+                        'Av Rwd: {:10.4f}, '
+                        ''.format(*to_write)
+                        )
+                    # Re-use same line to print on.
+                    # sys.stdout.flush()
+                    # Write CSV row
+                    for i, label in enumerate(labels):
+                        results[label].append(to_write[i])
+                    writer.writerow(to_write)
+                if done:
+                    break
 
     # Plot
     i_episode, loss_actor, loss_critic = zip(*telemetry)
