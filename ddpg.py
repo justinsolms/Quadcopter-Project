@@ -35,7 +35,7 @@ class Actor:
         self.action_range = self.action_high - self.action_low
 
         # Initialize any other variables here
-        self.learning_rate = 1.0e-4
+        self.learning_rate = 0.001
 
         self.build_model()
 
@@ -109,7 +109,7 @@ class Critic:
         self.action_size = action_size
 
         # Initialize any other variables here
-        self.learning_rate = 1.0e-3
+        self.learning_rate = 0.001
 
         self.build_model()
 
@@ -212,7 +212,7 @@ class DDPG():
                              self.exploration_theta, self.exploration_sigma)
 
         # Replay memory
-        self.buffer_size = 1000000
+        self.buffer_size = 100000
         self.batch_size = 64
         self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
