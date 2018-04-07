@@ -6,15 +6,17 @@ import os
 import sys
 import pandas as pd
 from ddpg import DDPG
-from task import Task
-import gym
 import numpy as np
 import csv
 import matplotlib.pyplot as plt
 
+# Path to gym development version with QuadCopter-v0
+sys.path.insert(0, '../gym/')
+import gym
+
 labels = ['episode', 'step', 'lossQ', 'reward']
 results = {x : [] for x in labels}
-name = 'Pendulum-v0'
+name = 'QuadCopter-v0'
 
 def train(num_episodes=20000, ):
     """Train."""
@@ -36,7 +38,7 @@ def train(num_episodes=20000, ):
             sum_reward = 0.0
             N = 0
             while True:
-                env.render()
+                # env.render()
                 # Actor commands the action
                 action = agent.act(state)
                 # Environment reacts with next state, reward and done for
@@ -49,7 +51,8 @@ def train(num_episodes=20000, ):
                 sum_reward += reward
                 N += 1
                 i_step += 1
-                if i_step % 100 == 0 and losses is not None:
+                # if i_step % 1000 == 0 and losses is not None:
+                if done and losses is not None:
                     loss_critic = losses
                     # End of episode. Show metrics.
                     to_write = (i_episode, i_step, loss_critic,
