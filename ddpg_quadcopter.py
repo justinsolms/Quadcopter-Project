@@ -3,7 +3,9 @@ DDPG agent
 
 CREDITS
 -------
-keras-rl : examples/ddpg_pendulum.py
+- keras-rl : examples/ddpg_pendulum.py
+- https://yanpanlau.github.io/2016/10/11/Torcs-Keras.html - helping understand
+  the lanuage of section 7 of the DDPG paper arXiv:1509.02971
 
 """
 import sys
@@ -19,11 +21,13 @@ import rl
 import numpy as np
 
 from keras.models import Sequential, Model
-from keras.layers import Dense, Activation, Flatten, Input, Concatenate
+from keras.layers import Dense, Activation, Input, Concatenate
+from keras.layers import Flatten, Reshape
+from keras.layers import Add
 from keras.layers import Dropout, BatchNormalization
 from keras.layers import Lambda
 from keras.optimizers import Adam
-from keras.initializers import RandomUniform
+from keras.initializers import RandomUniform, RandomNormal
 
 from rl.agents import DDPGAgent
 from rl.memory import SequentialMemory
@@ -40,7 +44,7 @@ np.random.seed(123)
 env.seed(123)
 assert len(env.action_space.shape) == 1
 nb_actions = env.action_space.shape[0]
-
+nb_observations = env.observation_space.shape[0]
 
 # Map coef for x in [-1, 1] -> action in [low, high]
 a = (env.action_space.high -  env.action_space.low) / 2.0
@@ -49,58 +53,46 @@ def action_map(x, a=None, b=None):
     z = a * x + b
     return z
 
-# Next, we build a very simple model.
-init_w = RandomUniform(minval=-0.003, maxval=0.003)
-observation_input = Input(shape=(1,) + env.observation_space.shape, name='observation_input_1')
-y = Flatten(input_shape=(1,) + env.observation_space.shape)(observation_input)
-y = Dense(1024)(y)
-y = Activation('relu')(y)
-y = Dropout(0.5)(y)
-y = Dense(256)(y)
-y = Activation('relu')(y)
-y = Dropout(0.5)(y)
-y = Dense(128)(y)
-y = Activation('relu')(y)
-y = Dropout(0.5)(y)
-y = Dense(nb_actions,
-                kernel_initializer=init_w,
-                bias_initializer='zeros')(y)
-y = Activation('tanh')(y)
-y = Dropout(0.5)(y)
-y = Lambda(action_map, arguments={'a': a, 'b': b})(y)
-actor = Model(inputs=[observation_input], outputs=y)
+HIDDEN1_UNITS = 300
+HIDDEN2_UNITS = 600
+
+# Actor
+# init = RandomUniform(minval=-0.003, maxval=0.003)
+init = RandomNormal(mean=0.0, stddev=0.003)
+observation_input = Input((1, nb_observations), name='A_observation_input')
+h0 = Dense(HIDDEN1_UNITS, activation='relu', name='A_h0')(observation_input)
+h1 = Dense(HIDDEN2_UNITS, activation='relu', name='A_h1')(h0)
+actions = Dense(nb_actions,  activation='tanh', name='A_last',
+                kernel_initializer=init, bias_initializer=init)(h1)
+actions = Flatten()(actions)
+actions = Lambda(action_map, arguments={'a': a, 'b': b}, name='A_map')(actions)
+actor = Model(inputs=observation_input, outputs=actions)
 print(actor.summary())
 
 
-action_input = Input(shape=(nb_actions,), name='action_input')
-observation_input = Input(shape=(1,) + env.observation_space.shape, name='observation_input_2')
-flattened_observation = Flatten()(observation_input)
-x = Concatenate()([action_input, flattened_observation])
-x = Dense(512)(x)
-x = Activation('relu')(x)
-x = Dropout(0.5)(x)
-x = Dense(256)(x)
-x = Activation('relu')(x)
-x = Dropout(0.5)(x)
-x = Dense(256)(x)
-x = Activation('relu')(x)
-x = Dropout(0.5)(x)
-x = Dense(1)(x)
-x = Activation('linear')(x)
-x = Dropout(0.5)(x)
-critic = Model(inputs=[action_input, observation_input], outputs=x)
+# Critic
+action_input = Input(shape=(nb_actions,), name='Q_action_input')
+observation_input = Input((1, nb_observations), name='Q_observation_input')
+s1 = Dense(HIDDEN1_UNITS, activation='relu', name='Q_s1')(observation_input)
+a1 = Dense(HIDDEN2_UNITS, activation='linear', name='Q_a1')(action_input)
+h1 = Dense(HIDDEN2_UNITS, activation='linear', name='Q_h1')(s1)
+h2 = Add(name='Q_h2')([h1,a1])
+h3 = Dense(HIDDEN2_UNITS, activation='relu', name='Q_h3')(h2)
+Qvalues = Dense(1, activation='linear', name='Q_last')(h3)
+Qvalues = Flatten()(Qvalues)
+critic = Model(inputs=[action_input, observation_input], outputs=Qvalues)
 print(critic.summary())
 
 # Finally, we configure and compile our agent. You can use every built-in Keras optimizer and
 # even the metrics!
 memory = SequentialMemory(limit=100000, window_length=1)
 random_process = OrnsteinUhlenbeckProcess(size=nb_actions,
-                                          theta=0.15, mu=0., sigma=0.4)  # 0.3
+                                          theta=0.6, mu=0., sigma=0.3)  # 0.3
 agent = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic,
                   critic_action_input=action_input,
                   memory=memory,
-                  nb_steps_warmup_critic=50000,
-                  nb_steps_warmup_actor=50000,
+                  nb_steps_warmup_critic=500,
+                  nb_steps_warmup_actor=500,
                   random_process=random_process, gamma=.99,
                   target_model_update=0.001)
 agent.compile(Adam(lr=.0001, clipnorm=1.), metrics=['mae'])
