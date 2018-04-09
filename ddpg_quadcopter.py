@@ -37,6 +37,24 @@ from rl.random import OrnsteinUhlenbeckProcess
 ENV_NAME = 'QuadCopter-v0'
 gym.undo_logger_setup()
 
+HIDDEN_UNITS_1 = 300
+HIDDEN_UNITS_2 = 600
+
+NB_STEPS = 1000000
+BATCH_SIZE = 64
+LEARN_R = .0001
+CLIPNORM = 1.
+
+MEMORY = 1000000
+WARMUP_ACTOR = 1
+WARMUP_CRITIC = 1
+
+THETA = 0.6
+MU = 0.
+SIGMA = 0.3
+
+GAMMA=.99
+TAU = 0.001
 
 # Get the environment and extract the number of actions.
 env = gym.make(ENV_NAME)
@@ -53,54 +71,54 @@ def action_map(x, a=None, b=None):
     z = a * x + b
     return z
 
-HIDDEN1_UNITS = 300
-HIDDEN2_UNITS = 600
-
 # Actor
 # init = RandomUniform(minval=-0.003, maxval=0.003)
 init = RandomNormal(mean=0.0, stddev=0.003)
-observation_input = Input((1, nb_observations), name='A_observation_input')
-h0 = Dense(HIDDEN1_UNITS, activation='relu', name='A_h0')(observation_input)
-h1 = Dense(HIDDEN2_UNITS, activation='relu', name='A_h1')(h0)
+observation_input = Input((1, nb_observations,), name='A_observation_input')
+flattened_observation = Flatten()(observation_input)
+h0 = Dense(HIDDEN_UNITS_1, name='A_h0')(flattened_observation)
+h0 = Activation('relu')(h0)
+h1 = Dense(HIDDEN_UNITS_2, activation='relu', name='A_h1')(h0)
 actions = Dense(nb_actions,  activation='tanh', name='A_last',
                 kernel_initializer=init, bias_initializer=init)(h1)
-actions = Flatten()(actions)
 actions = Lambda(action_map, arguments={'a': a, 'b': b}, name='A_map')(actions)
 actor = Model(inputs=observation_input, outputs=actions)
 print(actor.summary())
 
 
 # Critic
-action_input = Input(shape=(nb_actions,), name='Q_action_input')
-observation_input = Input((1, nb_observations), name='Q_observation_input')
-s1 = Dense(HIDDEN1_UNITS, activation='relu', name='Q_s1')(observation_input)
-a1 = Dense(HIDDEN2_UNITS, activation='linear', name='Q_a1')(action_input)
-h1 = Dense(HIDDEN2_UNITS, activation='linear', name='Q_h1')(s1)
+action_input = Input((nb_actions,), name='Q_action_input')
+observation_input = Input((1, nb_observations,), name='A_observation_input')
+flattened_observation = Flatten()(observation_input)
+s1 = Dense(HIDDEN_UNITS_1, activation='relu', name='Q_s1')(flattened_observation)
+a1 = Dense(HIDDEN_UNITS_2, activation='linear', name='Q_a1')(action_input)
+h1 = Dense(HIDDEN_UNITS_2, activation='linear', name='Q_h1')(s1)
 h2 = Add(name='Q_h2')([h1,a1])
-h3 = Dense(HIDDEN2_UNITS, activation='relu', name='Q_h3')(h2)
+h3 = Dense(HIDDEN_UNITS_2, activation='relu', name='Q_h3')(h2)
 Qvalues = Dense(1, activation='linear', name='Q_last')(h3)
-Qvalues = Flatten()(Qvalues)
+# Qvalues = Flatten()(Qvalues)
 critic = Model(inputs=[action_input, observation_input], outputs=Qvalues)
 print(critic.summary())
 
 # Finally, we configure and compile our agent. You can use every built-in Keras optimizer and
 # even the metrics!
-memory = SequentialMemory(limit=100000, window_length=1)
+memory = SequentialMemory(limit=MEMORY, window_length=1)
 random_process = OrnsteinUhlenbeckProcess(size=nb_actions,
-                                          theta=0.6, mu=0., sigma=0.3)  # 0.3
+                                          theta=THETA, mu=MU, sigma=SIGMA)
 agent = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic,
                   critic_action_input=action_input,
                   memory=memory,
-                  nb_steps_warmup_critic=500,
-                  nb_steps_warmup_actor=500,
-                  random_process=random_process, gamma=.99,
-                  target_model_update=0.001)
-agent.compile(Adam(lr=.0001, clipnorm=1.), metrics=['mae'])
+                  batch_size=BATCH_SIZE,
+                  nb_steps_warmup_actor=WARMUP_ACTOR,
+                  nb_steps_warmup_critic=WARMUP_CRITIC,
+                  random_process=random_process, gamma=GAMMA,
+                  target_model_update=TAU)
+agent.compile(Adam(lr=LEARN_R, clipnorm=CLIPNORM), metrics=['mae'])
 
 # Okay, now it's time to learn something! We visualize the training here for
 # show, but this slows down training quite a lot. You can always safely abort
 # the training prematurely using Ctrl + C.
-agent.fit(env, nb_steps=1000000,
+agent.fit(env, nb_steps=NB_STEPS,
           visualize=False,
           verbose=1,
           nb_max_episode_steps=1500)
