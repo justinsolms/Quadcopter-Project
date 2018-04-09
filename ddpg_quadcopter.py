@@ -103,7 +103,7 @@ agent = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic,
                   nb_steps_warmup_actor=50000,
                   random_process=random_process, gamma=.99,
                   target_model_update=0.001)
-agent.compile(Adam(lr=.0003, clipnorm=1.), metrics=['mae'])
+agent.compile(Adam(lr=.0001, clipnorm=1.), metrics=['mae'])
 
 # Okay, now it's time to learn something! We visualize the training here for
 # show, but this slows down training quite a lot. You can always safely abort
