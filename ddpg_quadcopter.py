@@ -40,14 +40,15 @@ from keras.initializers import RandomUniform, RandomNormal
 from rl.agents import DDPGAgent
 from rl.memory import SequentialMemory
 from rl.random import OrnsteinUhlenbeckProcess
-
+from rl.callbacks import FileLogger
 import argparse
+
+ENV_NAME = 'QuadCopter-v0'
+gym.undo_logger_setup()
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-ENV_NAME = 'QuadCopter-v0'
-gym.undo_logger_setup()
 
 parser.add_argument("--test_episodes",
                     type=int ,
@@ -104,6 +105,11 @@ parser.add_argument("--warmup_critic",
                     dest="WARMUP_CRITIC",
                     default=500,
                     help="Number of steps before training Actor")
+parser.add_argument("--action-init-var",
+                    type=float,
+                    dest="ACTION_INIT_VAR",
+                    default=0.0001,
+                    help="Actor output layer initializer variance")
 parser.add_argument("--theta",
                     type=float,
                     dest="THETA",
@@ -129,6 +135,21 @@ parser.add_argument("--tau",
                     dest="TAU",
                     default=0.001,
                     help="Tau for soft update (the lower the softer update)")
+parser.add_argument("--verbose",
+                    type=int,
+                    dest="VERBOSE",
+                    default=0,
+                    help="Verbosity of training output")
+parser.add_argument("--log-file",
+                    type=str,
+                    dest="LOG_FILE",
+                    default="data.json",
+                    help="File for logging metrics to")
+# parser.add_argument("--log-interval",
+#                     type=int,
+#                     dest="LOG_INTERVAL",
+#                     default=1000,
+#                     help="Interval for file logging of metrics")
 HYP = parser.parse_args()
 
 # Get the environment and extract the number of actions.
@@ -139,16 +160,18 @@ assert len(env.action_space.shape) == 1
 nb_actions = env.action_space.shape[0]
 nb_observations = env.observation_space.shape[0]
 
-# Map coef for x in [-1, 1] -> action in [low, high]
-a = (env.action_space.high -  env.action_space.low) / 2.0
-b = (env.action_space.high +  env.action_space.low) / 2.0
-def action_map(x, a=None, b=None):
-    z = a * x + b
-    return z
+#  Log data to file
+if HYP.VERBOSE == 3:
+    # FloydHub
+    log_filename = '/output/' + HYP.LOG_FILE
+else:
+    # Local machine
+    log_filename = HYP.LOG_FILE
+file_logger = FileLogger(log_filename)
 
 # Actor
 # init = RandomUniform(minval=-0.003, maxval=0.003)
-init = RandomNormal(mean=0.0, stddev=0.003)
+init = RandomNormal(mean=0.0, stddev=HYP.ACTION_INIT_VAR)
 observation_input = Input((1, nb_observations,), name='A_observation_input')
 flattened_observation = Flatten()(observation_input)
 
@@ -160,12 +183,14 @@ h1 = Dense(HYP.HIDDEN_UNITS_2, name='A_h1')(h0)
 h1 = Dropout(HYP.DROPOUT)(h1)
 h1 = Activation('relu')(h1)
 
+h2 = Dense(HYP.HIDDEN_UNITS_2, name='A_h2')(h1)
+h2 = Dropout(HYP.DROPOUT)(h2)
+h2 = Activation('relu')(h2)
+
 actions = Dense(nb_actions, name='A_last',
                 kernel_initializer=init, bias_initializer=init)(h1)
 actions = Dropout(HYP.DROPOUT)(actions)
 actions = Activation('tanh')(actions)
-
-actions = Lambda(action_map, arguments={'a': a, 'b': b}, name='A_map')(actions)
 
 actor = Model(inputs=observation_input, outputs=actions)
 print(actor.summary())
@@ -188,7 +213,11 @@ h1 = Dense(HYP.HIDDEN_UNITS_2, name='Q_h1')(s1)
 h1 = Dropout(HYP.DROPOUT)(h1)
 h1 = Activation('linear')(h1)
 
-h2 = Add(name='Q_h2')([h1,a1])
+h_add = Add(name='Q_add')([h1,a1])
+
+h2 = Dense(HYP.HIDDEN_UNITS_2, name='Q_h2')(h_add)
+h2 = Dropout(HYP.DROPOUT)(h2)
+h2 = Activation('relu')(h2)
 
 h3 = Dense(HYP.HIDDEN_UNITS_2, name='Q_h3')(h2)
 h3 = Dropout(HYP.DROPOUT)(h3)
@@ -221,8 +250,8 @@ agent.compile(Adam(lr=HYP.LEARN_R, clipnorm=HYP.CLIPNORM), metrics=['mae'])
 # the training prematurely using Ctrl + C.
 agent.fit(env, nb_steps=HYP.NB_STEPS,
           visualize=False,
-          verbose=1,
-          nb_max_episode_steps=1500)
+          callbacks=[file_logger],
+          verbose=HYP.VERBOSE)
 
 # After training is done, we save the final weights.
 agent.save_weights('ddpg_{}_weights.h5f'.format(ENV_NAME), overwrite=True)
