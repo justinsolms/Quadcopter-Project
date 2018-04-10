@@ -19,11 +19,11 @@ CREDITS
 import sys
 
 # Path to gym development version with QuadCopter-v0
-sys.path.insert(0, '../gym/')
+sys.path.insert(0, './gym/')
 import gym
 
 # Path to gym development version with QuadCopter-v0
-sys.path.insert(0, '../keras-rl/')
+sys.path.insert(0, './keras-rl/')
 import rl
 
 import numpy as np
