@@ -77,6 +77,8 @@ The angular velocities and acceleration also possesses these same steps and sing
 
 ### Reward function
 
+The quadcopter enviroment `QuadCopter-v0` and it's reward function is to be found at [./gym/gym/envs/classic_control/quad_copter.py](./gym/gym/envs/classic_control/quad_copter.py).
+
 The step rewards consisted of:
 
 * Reward of 0.8 for flying.
