@@ -43,23 +43,23 @@ With the Actor engaged with Ornstein-Uhlenbeck noise and the Actor final layer i
 
 Here are some samples from a 10,000 step warm-up phase.
 
- Episode | Episode Steps | Episode Reward
+Episode  | Episode Steps | Episode Reward
 ---------|---------------|---------------
- 1      | 756           | 209.762
- 2      | 669           | 70.518
- 3      | 536           | 89.581
- 4      | 554           | 51.152
- 5      | 866           | 369.149
- 6      | 796           | 96.979
- 7      | 1156          | 126.055
- 8      | 1111          | 398.637
- 9      | 629           | 23.819
- 10     | 716           | 219.107
- 11     | 412           | 41.921
- 12     | 767           | 217.698
- 13     | 670           | 34.765
- 14     | 553           | 52.846
-**Mean**    | **727.93**  | **143**
+1        | 756           | 209.762
+2        | 669           | 70.518
+3        | 536           | 89.581
+4        | 554           | 51.152
+5        | 866           | 369.149
+6        | 796           | 96.979
+7        | 1156          | 126.055
+8        | 1111          | 398.637
+9        | 629           | 23.819
+10       | 716           | 219.107
+11       | 412           | 41.921
+12       | 767           | 217.698
+13       | 670           | 34.765
+14       | 553           | 52.846
+**Mean** | **727.93**    | **143**
 
 This deteriorates significantly the moment the Actor and Critic are finished with their war-up and become engaged. A training metric plot is shown.
 
@@ -107,6 +107,8 @@ I did not use BatchNormalization as there appears to be a bug when using the Ten
 
 ### Metrics
 
+The output text [output.txt](./output.txt) of the run used to produce this report is to be found in this repository.
+
 The task was very difficult. I did not manage to run enough to explore the hyper-parameter space properly. I found that using GPU's (such as FloyHub) ran no faster than my PC probably due to the Quadcopter physics simulation causing the CPU load to starve the GPU. Often a run that did well, when re-run with the exact same hyper-parameters, did not learn at all!!
 
 There was always an _aha-moment_ learning, followed by and _oh-no_ phase, and maybe a repeat or two of this behavior, then finally a definite, _we-got-it_, phase. I did not perform long enough training to find out what happens later on.
@@ -121,24 +123,27 @@ I used Mean Abolute Error as my optimizer metric and monitored the Critic loss(m
 
 # Testing final performance
 
+The output text [output.txt](./output.txt) of the run used to produce this report is to be found in this repository.
+
 Post-train testing for 5 episodes was performed with no noise process.
 
-Episode | Episode Steps | Episode Reward
---------|---------------|---------------
-1       | 1500*          | 899.536
-2       | 1285          | 450.448
-3       | 1500*          | 676.301
-4       | 1500*          | 514.441
-5       | 1424          | 377.892
-**Mean**  | **1441.80**  | **583.72**
-  
+Episode  | Episode Steps | Episode Reward
+---------|---------------|---------------
+1        | 1500*         | 899.536
+2        | 1285          | 450.448
+3        | 1500*         | 676.301
+4        | 1500*         | 514.441
+5        | 1424          | 377.892
+**Mean** | **1441.80**   | **583.72**
+
 **Note:** The `*`-marked episodes are where the Episode Step reached the maximum allowed by the environment.
 
 This far exceeds that of the above tabled pre-training 10,000 step warm-up phase, with 3 of the 5 episodes reaching the maximum allowed steps for an episode. It can be assumed that the Quadcopter Agent has begun to learn to fly in a hovering flight for at 1500 steps (or 30 seconds).
 
 As the training ran only 1,000,000 steps it can be assumed that more training would be beneficial, as well as exploring the hyper-parameter space in greater depth.
 
-The output text `output.txt` of the run used to produce this report is to be found in this repository.
+
+
 
 # Conclusion
 
