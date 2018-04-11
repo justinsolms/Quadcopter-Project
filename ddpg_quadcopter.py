@@ -187,6 +187,10 @@ h2 = Dense(HYP.HIDDEN_UNITS_2, name='A_h2')(h1)
 h2 = Dropout(HYP.DROPOUT)(h2)
 h2 = Activation('relu')(h2)
 
+h3 = Dense(HYP.HIDDEN_UNITS_2, name='A_h3')(h2)
+h3 = Dropout(HYP.DROPOUT)(h3)
+h3 = Activation('relu')(h3)
+
 actions = Dense(nb_actions, name='A_last',
                 kernel_initializer=init, bias_initializer=init)(h3)
 actions = Dropout(HYP.DROPOUT)(actions)
@@ -223,7 +227,11 @@ h3 = Dense(HYP.HIDDEN_UNITS_2, name='Q_h3')(h2)
 h3 = Dropout(HYP.DROPOUT)(h3)
 h3 = Activation('relu')(h3)
 
-Qvalues = Dense(1, activation='linear', name='Q_last')(h3)
+h4 = Dense(HYP.HIDDEN_UNITS_2, name='Q_h4')(h3)
+h4 = Dropout(HYP.DROPOUT)(h4)
+h4 = Activation('relu')(h4)
+
+Qvalues = Dense(1, activation='linear', name='Q_last')(h4)
 
 critic = Model(inputs=[action_input, observation_input], outputs=Qvalues)
 print(critic.summary())
