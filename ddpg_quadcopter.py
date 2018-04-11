@@ -188,7 +188,7 @@ h2 = Dropout(HYP.DROPOUT)(h2)
 h2 = Activation('relu')(h2)
 
 actions = Dense(nb_actions, name='A_last',
-                kernel_initializer=init, bias_initializer=init)(h1)
+                kernel_initializer=init, bias_initializer=init)(h3)
 actions = Dropout(HYP.DROPOUT)(actions)
 actions = Activation('tanh')(actions)
 

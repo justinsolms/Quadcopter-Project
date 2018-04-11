@@ -4,3 +4,4 @@ data.txt
 *.h5f
 .floydexpt
 .floydignore
+*.json
