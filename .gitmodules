@@ -1,0 +1,6 @@
+[submodule "keras-rl"]
+	path = keras-rl
+	url = /home/justin/Documents/Develop/keras-rl/.git
+[submodule "gym"]
+	path = gym
+	url = /home/justin/Documents/Develop/gym/.git

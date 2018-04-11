@@ -2,3 +2,6 @@ data.txt
 *.csv
 *.ipynb
 *.h5f
+.floydexpt
+.floydignore
+*.json
