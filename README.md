@@ -39,6 +39,7 @@ The quadcopter enviroment `QuadCopter-v0` and it's reward function is to be foun
 
 ### Training flight behavior
 
+ 
 With the Actor engaged with Ornstein-Uhlenbeck noise and the Actor final layer initialized to a normal distribution, usually of $\sigma-0.0001$, there was always a gradual tilt away form level flight resulting in a loss of altitude and sideways acceleration which resulted in early crash/termination of flight.
 
 Here are some samples from a 10,000 step warm-up phase.
@@ -81,6 +82,7 @@ The quadcopter enviroment `QuadCopter-v0` and it's reward function is to be foun
 
 The step rewards consisted of:
 
+ 
 * Reward of 0.8 for flying.
 * Penalty of 10 for a crash
 * Penalty of $\frac{||\boldsymbol{r}^n - \boldsymbol{r}^n_{center}||_2}{r_{max}}$ to discourage wandering away form the center of the box toward the walls, roof or ground; where $r_{max}$ is box limit and $\boldsymbol{r}^n_{center}$ is the center of the box.
