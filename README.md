@@ -131,6 +131,7 @@ Episode | Episode Steps | Episode Reward
 4       | 1500*          | 514.441
 5       | 1424          | 377.892
 **Mean**  | **1441.80**  | **583.72**
+  
 **Note:** The `*`-marked episodes are where the Episode Step reached the maximum allowed by the environment.
 
 This far exceeds that of the above tabled pre-training 10,000 step warm-up phase, with 3 of the 5 episodes reaching the maximum allowed steps for an episode. It can be assumed that the Quadcopter Agent has begun to learn to fly in a hovering flight for at 1500 steps (or 30 seconds).
