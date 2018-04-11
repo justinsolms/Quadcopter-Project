@@ -35,7 +35,7 @@ The training commenced with the random position.  All angles, velocity and angul
 
 ## Quadcopter
 
-The quadcopter enviroment `QuadCopter-v0` and it's reward function is to be found at [./gym/gym/envs/classic_control/quad_copter.py](./gym/gym/envs/classic_control/quad_copter.py).
+The quadcopter enviroment `QuadCopter-v0` and it's reward function is to be found at [gym/gym/envs/classic_control/quad_copter.py](gym/gym/envs/classic_control/quad_copter.py).
 
 ### Training flight behavior
 
@@ -77,7 +77,7 @@ The angular velocities and acceleration also possesses these same steps and sing
 
 ### Reward function
 
-The quadcopter enviroment `QuadCopter-v0` and it's reward function is to be found at [./gym/gym/envs/classic_control/quad_copter.py](./gym/gym/envs/classic_control/quad_copter.py).
+The quadcopter enviroment `QuadCopter-v0` and it's reward function is to be found at [gym/gym/envs/classic_control/quad_copter.py](gym/gym/envs/classic_control/quad_copter.py).
 
 The step rewards consisted of:
 
